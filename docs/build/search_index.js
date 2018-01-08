@@ -397,7 +397,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "HTTP.Streams.Stream",
     "category": "Type",
-    "text": "Stream(::IO, ::Request, ::Parser)\n\nCreates a HTTP.Stream that wraps an existing IO stream.\n\nstartwrite(::Stream) sends the Request headers to the IO stream.\nwrite(::Stream, body) sends the body (or a chunk of the bocdy).\nclosewrite(::Stream) sends the final 0 chunk (if needed) and calls closewrite on the IO stream.\nstartread(::Stream) parses the Response headers from the IO stream.\neof(::Stream) and readavailable(::Stream) read the body from theIO`  stream.\ncloseread(::Stream) reads the trailers and calls closeread on the IO  stream.\n\n\n\n"
+    "text": "Stream(::IO, ::Request, ::Parser)\n\nCreates a HTTP.Stream that wraps an existing IO stream.\n\nstartwrite(::Stream) sends the Request headers to the IO stream.\nwrite(::Stream, body) sends the body (or a chunk of the bocdy).\nclosewrite(::Stream) sends the final 0 chunk (if needed) and calls closewrite on the IO stream. When the IO stream is a HTTP.ConnectionPool.Transaction, calling closewrite releases the HTTP.ConnectionPool.Connection back into the pool for use by the next pipelined request.\nstartread(::Stream) calls startread on the IO stream then  reads and parses the Response headers.  When the IO stream is a HTTP.ConnectionPool.Transaction, calling startread waits for other pipelined responses to be read from the HTTP.ConnectionPool.Connection.\neof(::Stream) and readavailable(::Stream) parse the body from the IO  stream.\ncloseread(::Stream) reads the trailers and calls closeread on the IO  stream.  When the IO stream is a HTTP.ConnectionPool.Transaction,  calling closeread releases the readlock and allows the next pipelined  response to be read by another Stream that is waiting in startread.  If the Parser has not recieved a complete response, closeread throws  an EOFError.\n\n\n\n"
 },
 
 {
@@ -509,7 +509,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "HTTP.Parsers.headerscomplete",
     "category": "Function",
-    "text": "headerscomplete(::Message)\n\nHave the headers been read into this Message?\n\n\n\nheaderscomplete(::Parser)\n\nHas the Parser processed the entire Message Header?\n\n\n\n"
+    "text": "headerscomplete(::Parser)\n\nHas the Parser processed the entire Message Header?\n\n\n\nheaderscomplete(::Message)\n\nHave the headers been read into this Message?\n\n\n\n"
 },
 
 {
@@ -749,7 +749,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "HTTP.IOExtras.unread!",
     "category": "Function",
-    "text": "unread!(::IO, bytes)\n\nPush bytes back into a connection (to be returned by the next read).\n\n\n\nunread!(::Transaction, bytes)\n\nPush bytes back into a connection's excess buffer (to be returned by the next read).\n\n\n\n"
+    "text": "unread!(::Transaction, bytes)\n\nPush bytes back into a connection's excess buffer (to be returned by the next read).\n\n\n\nunread!(::IO, bytes)\n\nPush bytes back into a connection (to be returned by the next read).\n\n\n\n"
 },
 
 {
