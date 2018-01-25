@@ -485,7 +485,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "HTTP.Parsers.headerscomplete",
     "category": "Function",
-    "text": "headerscomplete(::Parser)\n\nHas the Parser processed the entire Message Header?\n\n\n\nheaderscomplete(::Message)\n\nHave the headers been read into this Message?\n\n\n\n"
+    "text": "headerscomplete(::Message)\n\nHave the headers been read into this Message?\n\n\n\nheaderscomplete(::Parser)\n\nHas the Parser processed the entire Message Header?\n\n\n\n"
 },
 
 {
