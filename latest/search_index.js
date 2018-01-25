@@ -485,7 +485,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "HTTP.Parsers.headerscomplete",
     "category": "Function",
-    "text": "headerscomplete(::Message)\n\nHave the headers been read into this Message?\n\n\n\nheaderscomplete(::Parser)\n\nHas the Parser processed the entire Message Header?\n\n\n\n"
+    "text": "headerscomplete(::Parser)\n\nHas the Parser processed the entire Message Header?\n\n\n\nheaderscomplete(::Message)\n\nHave the headers been read into this Message?\n\n\n\n"
 },
 
 {
@@ -693,7 +693,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "HTTP.IOExtras.unread!",
     "category": "Function",
-    "text": "unread!(::Transaction, bytes)\n\nPush bytes back into a connection's excess buffer (to be returned by the next read).\n\n\n\nunread!(::IO, bytes)\n\nPush bytes back into a connection (to be returned by the next read).\n\n\n\n"
+    "text": "unread!(::IO, bytes)\n\nPush bytes back into a connection (to be returned by the next read).\n\n\n\nunread!(::Transaction, bytes)\n\nPush bytes back into a connection's excess buffer (to be returned by the next read).\n\n\n\n"
 },
 
 {
