@@ -693,7 +693,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "HTTP.IOExtras.unread!",
     "category": "Function",
-    "text": "unread!(::IO, bytes)\n\nPush bytes back into a connection (to be returned by the next read).\n\n\n\nunread!(::Transaction, bytes)\n\nPush bytes back into a connection's excess buffer (to be returned by the next read).\n\n\n\n"
+    "text": "unread!(::Transaction, bytes)\n\nPush bytes back into a connection's excess buffer (to be returned by the next read).\n\n\n\nunread!(::IO, bytes)\n\nPush bytes back into a connection (to be returned by the next read).\n\n\n\n"
 },
 
 {
