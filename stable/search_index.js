@@ -17,11 +17,11 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#HTTP.request-Tuple{String,HTTP.URIs.URI,Array{Pair{String,String},1},Any}",
+    "location": "index.html#HTTP.request-Tuple{String,HTTP.URIs.URI,Array{Pair{SubString{String},SubString{String}},1},Any}",
     "page": "Home",
     "title": "HTTP.request",
     "category": "Method",
-    "text": "HTTP.request(method, url [, headers [, body]]; <keyword arguments>]) -> HTTP.Response\n\nSend a HTTP Request Message and recieve a HTTP Response Message.\n\ne.g.\n\nr = HTTP.request(\"GET\", \"http://httpbin.org/ip\")\nprintln(r.status)\nprintln(String(r.body))\n\nheaders can be any collection where [string(k) => string(v) for (k,v) in headers] yields Vector{Pair}. e.g. a Dict(), a Vector{Tuple}, a Vector{Pair} or an iterator.\n\nbody can take a number of forms:\n\na String, a Vector{UInt8} or any T accepted by write(::IO, ::T)\na collection of String or AbstractVector{UInt8} or IO streams or items of any type T accepted by write(::IO, ::T...)\na readable IO stream or any IO-like type T for which eof(T) and readavailable(T) are defined.\n\nThe HTTP.Response struct contains:\n\nstatus::Int16 e.g. 200\nheaders::Vector{Pair{String,String}}  e.g. [\"Server\" => \"Apache\", \"Content-Type\" => \"text/html\"]\nbody::Vector{UInt8}, the Response Body bytes  (empty if a response_stream was specified in the request).\n\nFunctions HTTP.get, HTTP.put, HTTP.post and HTTP.head are defined as shorthand for HTTP.request(\"GET\", ...), etc.\n\nHTTP.request and HTTP.open also accept optional keyword parameters.\n\ne.g.\n\nHTTP.request(\"GET\", \"http://httpbin.org/ip\"; retries=4, cookies=true)\n\nHTTP.get(\"http://s3.us-east-1.amazonaws.com/\"; aws_authorization=true)\n\nconf = (readtimeout = 10,\n        pipeline_limit = 4,\n        retry = false,\n        redirect = false)\n\nHTTP.get(\"http://httpbin.org/ip\"; conf..)\nHTTP.put(\"http://httpbin.org/put\", [], \"Hello\"; conf..)\n\nURL options\n\nquery = nothing, replaces the query part of url.\n\nStreaming options\n\nresponse_stream = nothing, a writeable IO stream or any IO-like  type T for which write(T, AbstractVector{UInt8}) is defined.\nverbose = 0, set to 1 or 2 for extra message logging.\n\nConnection Pool options\n\nconnection_limit = 8, number of concurrent connections to each host:port.\npipeline_limit = 16, number of concurrent requests per connection.\nreuse_limit = nolimit, number of times a connection is reused after the                          first request.\nsocket_type = TCPSocket\n\nTimeout options\n\nreadtimeout = 60, close the connection if no data is recieved for this many seconds. Use readtimeout = 0 to disable.\n\nRetry options\n\nretry = true, retry idempotent requests in case of error.\nretries = 4, number of times to retry.\nretry_non_idempotent = false, retry non-idempotent requests too. e.g. POST.\n\nRedirect options\n\nredirect = true, follow 3xx redirect responses.\nredirect_limit = 3, number of times to redirect.\nforwardheaders = false, forward original headers on redirect.\n\nStatus Exception options\n\nstatusexception = true, throw HTTP.StatusError for response status >= 300.\n\nSSLContext options\n\nrequire_ssl_verification = false, pass MBEDTLS_SSL_VERIFY_REQUIRED to the mbed TLS library. \"... peer must present a valid certificate, handshake is aborted if   verification failed.\"\nsslconfig = SSLConfig(require_ssl_verification)\n\nBasic Authenticaiton options\n\nbasicauthorization=false, add Authorization: Basic header using credentials from url userinfo.\n\nAWS Authenticaiton options\n\nawsauthorization = false, enable AWS4 Authentication.\naws_service = split(url.host, \".\")[1]\naws_region = split(url.host, \".\")[2]\naws_access_key_id = ENV[\"AWS_ACCESS_KEY_ID\"]\naws_secret_access_key = ENV[\"AWS_SECRET_ACCESS_KEY\"]\naws_session_token = get(ENV, \"AWS_SESSION_TOKEN\", \"\")\nbody_sha256 = digest(MD_SHA256, body),\nbody_md5 = digest(MD_MD5, body),\n\nCookie options\n\ncookies = false, enable cookies.\ncookiejar::Dict{String, Set{Cookie}}=default_cookiejar\n\nCananoincalization options\n\ncanonicalizeheaders = false, rewrite request and response headers in Canonical-Camel-Dash-Format.\n\nRequest Body Examples\n\nString body:\n\nHTTP.request(\"POST\", \"http://httpbin.org/post\", [], \"post body data\")\n\nStream body from file:\n\nio = open(\"post_data.txt\", \"r\")\nHTTP.request(\"POST\", \"http://httpbin.org/post\", [], io)\n\nGenerator body:\n\nchunks = (\"chunk$i\" for i in 1:1000)\nHTTP.request(\"POST\", \"http://httpbin.org/post\", [], chunks)\n\nCollection body:\n\nchunks = [preamble_chunk, data_chunk, checksum(data_chunk)]\nHTTP.request(\"POST\", \"http://httpbin.org/post\", [], chunks)\n\nopen() do io body:\n\nHTTP.open(\"POST\", \"http://httpbin.org/post\") do io\n    write(io, preamble_chunk)\n    write(io, data_chunk)\n    write(io, checksum(data_chunk))\nend\n\nResponse Body Examples\n\nString body:\n\nr = HTTP.request(\"GET\", \"http://httpbin.org/get\")\nprintln(String(r.body))\n\nStream body to file:\n\nio = open(\"get_data.txt\", \"w\")\nr = HTTP.request(\"GET\", \"http://httpbin.org/get\", response_stream=io)\nclose(io)\nprintln(read(\"get_data.txt\"))\n\nStream body through buffer:\n\nio = BufferStream()\n@async while !eof(io)\n    bytes = readavailable(io))\n    println(\"GET data: $bytes\")\nend\nr = HTTP.request(\"GET\", \"http://httpbin.org/get\", response_stream=io)\nclose(io)\n\nStream body through open() do io:\n\nr = HTTP.open(\"GET\", \"http://httpbin.org/stream/10\") do io\n   while !eof(io)\n       println(String(readavailable(io)))\n   end\nend\n\nusing HTTP.IOExtras\n\nHTTP.open(\"GET\", \"https://tinyurl.com/bach-cello-suite-1-ogg\") do http\n    n = 0\n    r = startread(http)\n    l = parse(Int, header(r, \"Content-Length\"))\n    open(`vlc -q --play-and-exit --intf dummy -`, \"w\") do vlc\n        while !eof(http)\n            bytes = readavailable(http)\n            write(vlc, bytes)\n            n += length(bytes)\n            println(\"streamed $n-bytes $((100*n)÷l)%\\u1b[1A\")\n        end\n    end\nend\n\nRequest and Response Body Examples\n\nString bodies:\n\nr = HTTP.request(\"POST\", \"http://httpbin.org/post\", [], \"post body data\")\nprintln(String(r.body))\n\nStream bodies from and to files:\n\nin = open(\"foo.png\", \"r\")\nout = open(\"foo.jpg\", \"w\")\nHTTP.request(\"POST\", \"http://convert.com/png2jpg\", [], in, response_stream=out)\n\nStream bodies through: open() do io:\n\nusing HTTP.IOExtras\n\nHTTP.open(\"POST\", \"http://music.com/play\") do io\n    write(io, JSON.json([\n        \"auth\" => \"12345XXXX\",\n        \"song_id\" => 7,\n    ]))\n    r = startread(io)\n    @show r.status\n    while !eof(io)\n        bytes = readavailable(io))\n        play_audio(bytes)\n    end\nend\n\n\n\n"
+    "text": "HTTP.request(method, url [, headers [, body]]; <keyword arguments>]) -> HTTP.Response\n\nSend a HTTP Request Message and recieve a HTTP Response Message.\n\ne.g.\n\nr = HTTP.request(\"GET\", \"http://httpbin.org/ip\")\nprintln(r.status)\nprintln(String(r.body))\n\nheaders can be any collection where [string(k) => string(v) for (k,v) in headers] yields Vector{Pair}. e.g. a Dict(), a Vector{Tuple}, a Vector{Pair} or an iterator.\n\nbody can take a number of forms:\n\na String, a Vector{UInt8} or any T accepted by write(::IO, ::T)\na collection of String or AbstractVector{UInt8} or IO streams or items of any type T accepted by write(::IO, ::T...)\na readable IO stream or any IO-like type T for which eof(T) and readavailable(T) are defined.\n\nThe HTTP.Response struct contains:\n\nstatus::Int16 e.g. 200\nheaders::Vector{Pair{String,String}}  e.g. [\"Server\" => \"Apache\", \"Content-Type\" => \"text/html\"]\nbody::Vector{UInt8}, the Response Body bytes  (empty if a response_stream was specified in the request).\n\nFunctions HTTP.get, HTTP.put, HTTP.post and HTTP.head are defined as shorthand for HTTP.request(\"GET\", ...), etc.\n\nHTTP.request and HTTP.open also accept optional keyword parameters.\n\ne.g.\n\nHTTP.request(\"GET\", \"http://httpbin.org/ip\"; retries=4, cookies=true)\n\nHTTP.get(\"http://s3.us-east-1.amazonaws.com/\"; aws_authorization=true)\n\nconf = (readtimeout = 10,\n        pipeline_limit = 4,\n        retry = false,\n        redirect = false)\n\nHTTP.get(\"http://httpbin.org/ip\"; conf..)\nHTTP.put(\"http://httpbin.org/put\", [], \"Hello\"; conf..)\n\nURL options\n\nquery = nothing, replaces the query part of url.\n\nStreaming options\n\nresponse_stream = nothing, a writeable IO stream or any IO-like  type T for which write(T, AbstractVector{UInt8}) is defined.\nverbose = 0, set to 1 or 2 for extra message logging.\n\nConnection Pool options\n\nconnection_limit = 8, number of concurrent connections to each host:port.\npipeline_limit = 16, number of concurrent requests per connection.\nreuse_limit = nolimit, number of times a connection is reused after the                          first request.\nsocket_type = TCPSocket\n\nTimeout options\n\nreadtimeout = 60, close the connection if no data is recieved for this many seconds. Use readtimeout = 0 to disable.\n\nRetry options\n\nretry = true, retry idempotent requests in case of error.\nretries = 4, number of times to retry.\nretry_non_idempotent = false, retry non-idempotent requests too. e.g. POST.\n\nRedirect options\n\nredirect = true, follow 3xx redirect responses.\nredirect_limit = 3, number of times to redirect.\nforwardheaders = false, forward original headers on redirect.\n\nStatus Exception options\n\nstatus_exception = true, throw HTTP.StatusError for response status >= 300.\n\nSSLContext options\n\nrequire_ssl_verification = false, pass MBEDTLS_SSL_VERIFY_REQUIRED to the mbed TLS library. \"... peer must present a valid certificate, handshake is aborted if   verification failed.\"\nsslconfig = SSLConfig(require_ssl_verification)\n\nBasic Authenticaiton options\n\nbasic_authorization=false, add Authorization: Basic header using credentials from url userinfo.\n\nAWS Authenticaiton options\n\naws_authorization = false, enable AWS4 Authentication.\naws_service = split(url.host, \".\")[1]\naws_region = split(url.host, \".\")[2]\naws_access_key_id = ENV[\"AWS_ACCESS_KEY_ID\"]\naws_secret_access_key = ENV[\"AWS_SECRET_ACCESS_KEY\"]\naws_session_token = get(ENV, \"AWS_SESSION_TOKEN\", \"\")\nbody_sha256 = digest(MD_SHA256, body),\nbody_md5 = digest(MD_MD5, body),\n\nCookie options\n\ncookies = false, enable cookies.\ncookiejar::Dict{String, Set{Cookie}}=default_cookiejar\n\nCananoincalization options\n\ncanonicalize_headers = false, rewrite request and response headers in Canonical-Camel-Dash-Format.\n\nRequest Body Examples\n\nString body:\n\nHTTP.request(\"POST\", \"http://httpbin.org/post\", [], \"post body data\")\n\nStream body from file:\n\nio = open(\"post_data.txt\", \"r\")\nHTTP.request(\"POST\", \"http://httpbin.org/post\", [], io)\n\nGenerator body:\n\nchunks = (\"chunk$i\" for i in 1:1000)\nHTTP.request(\"POST\", \"http://httpbin.org/post\", [], chunks)\n\nCollection body:\n\nchunks = [preamble_chunk, data_chunk, checksum(data_chunk)]\nHTTP.request(\"POST\", \"http://httpbin.org/post\", [], chunks)\n\nopen() do io body:\n\nHTTP.open(\"POST\", \"http://httpbin.org/post\") do io\n    write(io, preamble_chunk)\n    write(io, data_chunk)\n    write(io, checksum(data_chunk))\nend\n\nResponse Body Examples\n\nString body:\n\nr = HTTP.request(\"GET\", \"http://httpbin.org/get\")\nprintln(String(r.body))\n\nStream body to file:\n\nio = open(\"get_data.txt\", \"w\")\nr = HTTP.request(\"GET\", \"http://httpbin.org/get\", response_stream=io)\nclose(io)\nprintln(read(\"get_data.txt\"))\n\nStream body through buffer:\n\nio = BufferStream()\n@async while !eof(io)\n    bytes = readavailable(io))\n    println(\"GET data: $bytes\")\nend\nr = HTTP.request(\"GET\", \"http://httpbin.org/get\", response_stream=io)\nclose(io)\n\nStream body through open() do io:\n\nr = HTTP.open(\"GET\", \"http://httpbin.org/stream/10\") do io\n   while !eof(io)\n       println(String(readavailable(io)))\n   end\nend\n\nusing HTTP.IOExtras\n\nHTTP.open(\"GET\", \"https://tinyurl.com/bach-cello-suite-1-ogg\") do http\n    n = 0\n    r = startread(http)\n    l = parse(Int, header(r, \"Content-Length\"))\n    open(`vlc -q --play-and-exit --intf dummy -`, \"w\") do vlc\n        while !eof(http)\n            bytes = readavailable(http)\n            write(vlc, bytes)\n            n += length(bytes)\n            println(\"streamed $n-bytes $((100*n)÷l)%\\u1b[1A\")\n        end\n    end\nend\n\nRequest and Response Body Examples\n\nString bodies:\n\nr = HTTP.request(\"POST\", \"http://httpbin.org/post\", [], \"post body data\")\nprintln(String(r.body))\n\nStream bodies from and to files:\n\nin = open(\"foo.png\", \"r\")\nout = open(\"foo.jpg\", \"w\")\nHTTP.request(\"POST\", \"http://convert.com/png2jpg\", [], in, response_stream=out)\n\nStream bodies through: open() do io:\n\nusing HTTP.IOExtras\n\nHTTP.open(\"POST\", \"http://music.com/play\") do io\n    write(io, JSON.json([\n        \"auth\" => \"12345XXXX\",\n        \"song_id\" => 7,\n    ]))\n    r = startread(io)\n    @show r.status\n    while !eof(io)\n        bytes = readavailable(io))\n        play_audio(bytes)\n    end\nend\n\n\n\n"
 },
 
 {
@@ -73,11 +73,11 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#HTTP.Parsers.ParsingError",
+    "location": "index.html#HTTP.Parsers.ParseError",
     "page": "Home",
-    "title": "HTTP.Parsers.ParsingError",
+    "title": "HTTP.Parsers.ParseError",
     "category": "Type",
-    "text": "The [Parser] input was invalid.\n\nFields:\n\ncode, internal error code\nstate, internal parsing state.\nstatus::Int, HTTP response status.\nmsg::String, error message.\n\n\n\n"
+    "text": "Parser input was invalid.\n\nFields:\n\ncode, error code\nbytes, the offending input.\n\n\n\n"
 },
 
 {
@@ -93,7 +93,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "Requests",
     "category": "section",
-    "text": "HTTP.request(::String,::HTTP.URIs.URI,::Array{Pair{String,String},1},::Any)\nHTTP.open\nHTTP.get\nHTTP.put\nHTTP.post\nHTTP.headRequest functions may throw the following exceptions:HTTP.StatusError\nHTTP.ParsingError\nHTTP.IOErrorBase.DNSError"
+    "text": "HTTP.request(::String,::HTTP.URIs.URI,::Array{Pair{SubString{String},SubString{String}},1},::Any)\nHTTP.open\nHTTP.get\nHTTP.put\nHTTP.post\nHTTP.headRequest functions may throw the following exceptions:HTTP.StatusError\nHTTP.ParseError\nHTTP.IOErrorBase.DNSError"
 },
 
 {
@@ -117,7 +117,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "HTTP.Servers.Server",
     "category": "Type",
-    "text": "Server(handler, logger::IO=STDOUT; kwargs...)\n\nAn http/https server. Supports listening on a host and port via the HTTP.serve(server, host, port) function. handler is a function of the form f(::Request, ::Response) -> HTTP.Response, i.e. it takes both a Request and pre-built Response objects as inputs and returns the, potentially modified, Response. logger indicates where logging output should be directed. When HTTP.serve is called, it aims to \"never die\", catching and recovering from all internal errors. To forcefully stop, one can obviously kill the julia process, interrupt (ctrl/cmd+c) if main task, or send the kill signal over a server in channel like: put!(server.in, HTTP.Servers.KILL).\n\nSupported keyword arguments include:\n\ncert: if https, the cert file to use, as passed to HTTP.MbedTLS.SSLConfig(cert, key)\nkey: if https, the key file to use, as passed to HTTP.MbedTLS.SSLConfig(cert, key)\ntlsconfig: pass in an already-constructed HTTP.MbedTLS.SSLConfig instance\nreadtimeout: how long a client connection will be left open without receiving any bytes\nratelimit: a Rational{Int} of the form 5//1 indicating how many messages//second should be allowed per client IP address; requests exceeding the rate limit will be dropped\nsupport100continue: a Bool indicating whether Expect: 100-continue headers should be supported for delayed request body sending; default = true\nlogbody: whether the Response body should be logged when verbose=true logging is enabled; default = true\n\n\n\n"
+    "text": "Server(handler, logger::IO=STDOUT; kwargs...)\n\nAn http/https server. Supports listening on a host and port via the HTTP.serve(server, host, port) function. handler is a function of the form f(::Request, ::Response) -> HTTP.Response, i.e. it takes both a Request and pre-built Response objects as inputs and returns the, potentially modified, Response. logger indicates where logging output should be directed. When HTTP.serve is called, it aims to \"never die\", catching and recovering from all internal errors. To forcefully stop, one can obviously kill the julia process, interrupt (ctrl/cmd+c) if main task, or send the kill signal over a server in channel like: put!(server.in, HTTP.Servers.KILL).\n\nSupported keyword arguments include:\n\ncert: if https, the cert file to use, as passed to HTTP.MbedTLS.SSLConfig(cert, key)\nkey: if https, the key file to use, as passed to HTTP.MbedTLS.SSLConfig(cert, key)\nsslconfig: pass in an already-constructed HTTP.MbedTLS.SSLConfig instance\nreadtimeout: how long a client connection will be left open without receiving any bytes\nratelimit: a Rational{Int} of the form 5//1 indicating how many messages//second should be allowed per client IP address; requests exceeding the rate limit will be dropped\nsupport100continue: a Bool indicating whether Expect: 100-continue headers should be supported for delayed request body sending; default = true\nlogbody: whether the Response body should be logged when verbose=true logging is enabled; default = true\n\n\n\n"
 },
 
 {
@@ -261,7 +261,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "HTTP.stack",
     "category": "Function",
-    "text": "The stack() function returns the default HTTP Layer-stack type. This type is passed as the first parameter to the HTTP.request function.\n\nstack() accepts optional keyword arguments to enable/disable specific layers in the stack: request(method, args...; kw...) request(stack(;kw...), args...; kw...)\n\nThe minimal request execution stack is:\n\nstack = MessageLayer{ConnectionPoolLayer{StreamLayer}}\n\nThe figure below illustrates the full request exection stack and its relationship with HTTP.Response, HTTP.Parser, HTTP.Stream and the HTTP.ConnectionPool.\n\n ┌────────────────────────────────────────────────────────────────────────────┐\n │                                            ┌───────────────────┐           │\n │  HTTP.jl Request Execution Stack           │ HTTP.ParsingError ├ ─ ─ ─ ─ ┐ │\n │                                            └───────────────────┘           │\n │                                            ┌───────────────────┐         │ │\n │                                            │ HTTP.IOError      ├ ─ ─ ─     │\n │                                            └───────────────────┘      │  │ │\n │                                            ┌───────────────────┐           │\n │                                            │ HTTP.StatusError  │─ ─   │  │ │\n │                                            └───────────────────┘   │       │\n │                                            ┌───────────────────┐      │  │ │\n │     request(method, url, headers, body) -> │ HTTP.Response     │   │       │\n │             ──────────────────────────     └─────────▲─────────┘      │  │ │\n │                           ║                          ║             │       │\n │   ┌────────────────────────────────────────────────────────────┐      │  │ │\n │   │ request(RedirectLayer,     method, ::URI, ::Headers, body) │   │       │\n │   ├────────────────────────────────────────────────────────────┤      │  │ │\n │   │ request(BasicAuthLayer,    method, ::URI, ::Headers, body) │   │       │\n │   ├────────────────────────────────────────────────────────────┤      │  │ │\n │   │ request(CookieLayer,       method, ::URI, ::Headers, body) │   │       │\n │   ├────────────────────────────────────────────────────────────┤      │  │ │\n │   │ request(CanonicalizeLayer, method, ::URI, ::Headers, body) │   │       │\n │   ├────────────────────────────────────────────────────────────┤      │  │ │\n │   │ request(MessageLayer,      method, ::URI, ::Headers, body) │   │       │\n │   ├────────────────────────────────────────────────────────────┤      │  │ │\n │   │ request(AWS4AuthLayer,             ::URI, ::Request, body) │   │       │\n │   ├────────────────────────────────────────────────────────────┤      │  │ │\n │   │ request(RetryLayer,                ::URI, ::Request, body) │   │       │\n │   ├────────────────────────────────────────────────────────────┤      │  │ │\n │   │ request(ExceptionLayer,            ::URI, ::Request, body) ├ ─ ┘       │\n │   ├────────────────────────────────────────────────────────────┤      │  │ │\n┌┼───┤ request(ConnectionPoolLayer,       ::URI, ::Request, body) ├ ─ ─ ─     │\n││   ├────────────────────────────────────────────────────────────┤         │ │\n││   │ request(TimeoutLayer,              ::IO,  ::Request, body) │           │\n││   ├────────────────────────────────────────────────────────────┤         │ │\n││   │ request(StreamLayer,               ::IO,  ::Request, body) │           │\n││   └──────────────┬───────────────────┬─────────────────────────┘         │ │\n│└──────────────────┼────────║──────────┼───────────────║─────────────────────┘\n│                   │        ║          │               ║                   │  \n│┌──────────────────▼───────────────┐   │  ┌──────────────────────────────────┐\n││ HTTP.Request                     │   │  │ HTTP.Response                  │ │\n││                                  │   │  │                                  │\n││ method::String                   ◀───┼──▶ status::Int                    │ │\n││ target::String                   │   │  │ headers::Vector{Pair}            │\n││ headers::Vector{Pair}            │   │  │ body::Vector{UInt8}            │ │\n││ body::Vector{UInt8}              │   │  │                                  │\n│└──────────────────▲───────────────┘   │  └───────────────▲────────────────┼─┘\n│┌──────────────────┴────────║──────────▼───────────────║──┴──────────────────┐\n││ HTTP.Stream <:IO          ║           ╔══════╗       ║                   │ │\n││   ┌───────────────────────────┐       ║   ┌──▼─────────────────────────┐   │\n││   │ startwrite(::Stream)      │       ║   │ startread(::Stream)        │ │ │\n││   │ write(::Stream, body)     │       ║   │ read(::Stream) -> body     │   │\n││   │ ...                       │       ║   │ ...                        │ │ │\n││   │ closewrite(::Stream)      │       ║   │ closeread(::Stream)        │   │\n││   └───────────────────────────┘       ║   └────────────────────────────┘ │ │\n│└───────────────────────────║────────┬──║──────║───────║──┬──────────────────┘\n│┌──────────────────────────────────┐ │  ║ ┌────▼───────║──▼────────────────┴─┐\n││ HTTP.Messages                    │ │  ║ │ HTTP.Parser                      │\n││                                  │ │  ║ │                                  │\n││ writestartline(::IO, ::Request)  │ │  ║ │ parseheaders(bytes) do h::Pair   │\n││ writeheaders(::IO, ::Request)    │ │  ║ │ parsebody(bytes) -> bytes        │\n│└──────────────────────────────────┘ │  ║ └──────────────────────────────────┘\n│                            ║        │  ║                                     \n│┌───────────────────────────║────────┼──║────────────────────────────────────┐\n└▶ HTTP.ConnectionPool       ║        │  ║                                    │\n │                     ┌──────────────▼────────┐ ┌───────────────────────┐    │\n │ getconnection() ->  │ HTTP.Transaction <:IO │ │ HTTP.Transaction <:IO │    │\n │                     └───────────────────────┘ └───────────────────────┘    │\n │                           ║    ╲│╱    ║                  ╲│╱               │\n │                           ║     │     ║                   │                │\n │                     ┌───────────▼───────────┐ ┌───────────▼───────────┐    │\n │              pool: [│ HTTP.Connection       │,│ HTTP.Connection       │...]│\n │                     └───────────┬───────────┘ └───────────┬───────────┘    │\n │                           ║     │     ║                   │                │\n │                     ┌───────────▼───────────┐ ┌───────────▼───────────┐    │\n │                     │ Base.TCPSocket <:IO   │ │MbedTLS.SSLContext <:IO│    │\n │                     └───────────────────────┘ └───────────┬───────────┘    │\n │                           ║           ║                   │                │\n │                           ║           ║       ┌───────────▼───────────┐    │\n │                           ║           ║       │ Base.TCPSocket <:IO   │    │\n │                           ║           ║       └───────────────────────┘    │\n └───────────────────────────║───────────║────────────────────────────────────┘\n                             ║           ║                                     \n ┌───────────────────────────║───────────║──────────────┐  ┏━━━━━━━━━━━━━━━━━━┓\n │ HTTP Server               ▼                          │  ┃ data flow: ════▶ ┃\n │                        Request     Response          │  ┃ reference: ────▶ ┃\n └──────────────────────────────────────────────────────┘  ┗━━━━━━━━━━━━━━━━━━┛\n\nSee docs/src/layers.monopic.\n\n\n\n"
+    "text": "The stack() function returns the default HTTP Layer-stack type. This type is passed as the first parameter to the HTTP.request function.\n\nstack() accepts optional keyword arguments to enable/disable specific layers in the stack: request(method, args...; kw...) request(stack(;kw...), args...; kw...)\n\nThe minimal request execution stack is:\n\nstack = MessageLayer{ConnectionPoolLayer{StreamLayer}}\n\nThe figure below illustrates the full request exection stack and its relationship with HTTP.Response, HTTP.Parsers, HTTP.Stream and the HTTP.ConnectionPool.\n\n ┌────────────────────────────────────────────────────────────────────────────┐\n │                                            ┌───────────────────┐           │\n │  HTTP.jl Request Execution Stack           │ HTTP.ParsingError ├ ─ ─ ─ ─ ┐ │\n │                                            └───────────────────┘           │\n │                                            ┌───────────────────┐         │ │\n │                                            │ HTTP.IOError      ├ ─ ─ ─     │\n │                                            └───────────────────┘      │  │ │\n │                                            ┌───────────────────┐           │\n │                                            │ HTTP.StatusError  │─ ─   │  │ │\n │                                            └───────────────────┘   │       │\n │                                            ┌───────────────────┐      │  │ │\n │     request(method, url, headers, body) -> │ HTTP.Response     │   │       │\n │             ──────────────────────────     └─────────▲─────────┘      │  │ │\n │                           ║                          ║             │       │\n │   ┌────────────────────────────────────────────────────────────┐      │  │ │\n │   │ request(RedirectLayer,     method, ::URI, ::Headers, body) │   │       │\n │   ├────────────────────────────────────────────────────────────┤      │  │ │\n │   │ request(BasicAuthLayer,    method, ::URI, ::Headers, body) │   │       │\n │   ├────────────────────────────────────────────────────────────┤      │  │ │\n │   │ request(CookieLayer,       method, ::URI, ::Headers, body) │   │       │\n │   ├────────────────────────────────────────────────────────────┤      │  │ │\n │   │ request(CanonicalizeLayer, method, ::URI, ::Headers, body) │   │       │\n │   ├────────────────────────────────────────────────────────────┤      │  │ │\n │   │ request(MessageLayer,      method, ::URI, ::Headers, body) │   │       │\n │   ├────────────────────────────────────────────────────────────┤      │  │ │\n │   │ request(AWS4AuthLayer,             ::URI, ::Request, body) │   │       │\n │   ├────────────────────────────────────────────────────────────┤      │  │ │\n │   │ request(RetryLayer,                ::URI, ::Request, body) │   │       │\n │   ├────────────────────────────────────────────────────────────┤      │  │ │\n │   │ request(ExceptionLayer,            ::URI, ::Request, body) ├ ─ ┘       │\n │   ├────────────────────────────────────────────────────────────┤      │  │ │\n┌┼───┤ request(ConnectionPoolLayer,       ::URI, ::Request, body) ├ ─ ─ ─     │\n││   ├────────────────────────────────────────────────────────────┤         │ │\n││   │ request(TimeoutLayer,              ::IO,  ::Request, body) │           │\n││   ├────────────────────────────────────────────────────────────┤         │ │\n││   │ request(StreamLayer,               ::IO,  ::Request, body) │           │\n││   └──────────────┬───────────────────┬─────────────────────────┘         │ │\n│└──────────────────┼────────║──────────┼───────────────║─────────────────────┘\n│                   │        ║          │               ║                   │  \n│┌──────────────────▼───────────────┐   │  ┌──────────────────────────────────┐\n││ HTTP.Request                     │   │  │ HTTP.Response                  │ │\n││                                  │   │  │                                  │\n││ method::String                   ◀───┼──▶ status::Int                    │ │\n││ target::String                   │   │  │ headers::Vector{Pair}            │\n││ headers::Vector{Pair}            │   │  │ body::Vector{UInt8}            │ │\n││ body::Vector{UInt8}              │   │  │                                  │\n│└──────────────────▲───────────────┘   │  └───────────────▲────────────────┼─┘\n│┌──────────────────┴────────║──────────▼───────────────║──┴──────────────────┐\n││ HTTP.Stream <:IO          ║           ╔══════╗       ║                   │ │\n││   ┌───────────────────────────┐       ║   ┌──▼─────────────────────────┐   │\n││   │ startwrite(::Stream)      │       ║   │ startread(::Stream)        │ │ │\n││   │ write(::Stream, body)     │       ║   │ read(::Stream) -> body     │   │\n││   │ ...                       │       ║   │ ...                        │ │ │\n││   │ closewrite(::Stream)      │       ║   │ closeread(::Stream)        │   │\n││   └───────────────────────────┘       ║   └────────────────────────────┘ │ │\n│└───────────────────────────║────────┬──║──────║───────║──┬──────────────────┘\n│┌──────────────────────────────────┐ │  ║ ┌────▼───────║──▼────────────────┴─┐\n││ HTTP.Messages                    │ │  ║ │ HTTP.Parsers                     │\n││                                  │ │  ║ │                                  │\n││ writestartline(::IO, ::Request)  │ │  ║ │ parse_status_line(bytes, ::Req') │\n││ writeheaders(::IO, ::Request)    │ │  ║ │ parse_header_field(bytes, ::Req')│\n│└──────────────────────────────────┘ │  ║ └──────────────────────────────────┘\n│                            ║        │  ║                                     \n│┌───────────────────────────║────────┼──║────────────────────────────────────┐\n└▶ HTTP.ConnectionPool       ║        │  ║                                    │\n │                     ┌──────────────▼────────┐ ┌───────────────────────┐    │\n │ getconnection() ->  │ HTTP.Transaction <:IO │ │ HTTP.Transaction <:IO │    │\n │                     └───────────────────────┘ └───────────────────────┘    │\n │                           ║    ╲│╱    ║                  ╲│╱               │\n │                           ║     │     ║                   │                │\n │                     ┌───────────▼───────────┐ ┌───────────▼───────────┐    │\n │              pool: [│ HTTP.Connection       │,│ HTTP.Connection       │...]│\n │                     └───────────┬───────────┘ └───────────┬───────────┘    │\n │                           ║     │     ║                   │                │\n │                     ┌───────────▼───────────┐ ┌───────────▼───────────┐    │\n │                     │ Base.TCPSocket <:IO   │ │MbedTLS.SSLContext <:IO│    │\n │                     └───────────────────────┘ └───────────┬───────────┘    │\n │                           ║           ║                   │                │\n │                           ║           ║       ┌───────────▼───────────┐    │\n │                           ║           ║       │ Base.TCPSocket <:IO   │    │\n │                           ║           ║       └───────────────────────┘    │\n └───────────────────────────║───────────║────────────────────────────────────┘\n                             ║           ║                                     \n ┌───────────────────────────║───────────║──────────────┐  ┏━━━━━━━━━━━━━━━━━━┓\n │ HTTP Server               ▼                          │  ┃ data flow: ════▶ ┃\n │                        Request     Response          │  ┃ reference: ────▶ ┃\n └──────────────────────────────────────────────────────┘  ┗━━━━━━━━━━━━━━━━━━┛\n\nSee docs/src/layers.monopic.\n\n\n\n"
 },
 
 {
@@ -357,7 +357,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "HTTP.StreamRequest.StreamLayer",
     "category": "Type",
-    "text": "request(StreamLayer, ::IO, ::Request, body) -> HTTP.Response\n\nCreate a Stream to send a Request and body to an IO stream and read the response.\n\nSens the Request body in a background task and begins reading the response immediately so that the transmission can be aborted if the Response status indicates that the server does not wish to receive the message body. RFC7230 6.5.\n\n\n\n"
+    "text": "request(StreamLayer, ::IO, ::Request, body) -> HTTP.Response\n\nCreate a Stream to send a Request and body to an IO stream and read the response.\n\nSend the Request body in a background task and begins reading the response immediately so that the transmission can be aborted if the Response status indicates that the server does not wish to receive the message body. RFC7230 6.5.\n\n\n\n"
 },
 
 {
@@ -369,11 +369,11 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#HTTP.Parsers.Parser",
+    "location": "index.html#HTTP.Parsers",
     "page": "Home",
-    "title": "HTTP.Parsers.Parser",
-    "category": "Type",
-    "text": "The parser separates a raw HTTP Message into its component parts.\n\nIf the input data is invalid the Parser throws a ParsingError.\n\nThe parser processes a single HTTP Message. If the input stream contains multiple Messages the Parser stops at the end of the first Message. The parseheaders and parsebody functions return a SubArray containing the unuses portion of the input.\n\nThe Parser does not interpret the Message Headers except as needed to parse the Message Body. It is beyond the scope of the Parser to deal with repeated header fields, multi-line values, cookies or case normalization.\n\nThe Parser has no knowledge of the high-level Request and Response structs defined in Messages.jl. The Parser has it's own low level Message struct that represents both Request and Response Messages.\n\n\n\n"
+    "title": "HTTP.Parsers",
+    "category": "Module",
+    "text": "The parser separates a raw HTTP Message into its component parts.\n\nIf the input data is invalid the Parser throws a HTTP.ParseError.\n\nThe parse_* functions processes a single element of a HTTP Message at a time and return a SubString containing the unused portion of the input.\n\nThe Parser does not interpret the Message Headers. It is beyond the scope of the Parser to deal with repeated header fields, multi-line values, cookies or case normalization.\n\nThe Parser has no knowledge of the high-level Request and Response structs defined in Messages.jl. However, the Request and Response structs must have field names compatible with those expected by the parse_status_line! and parse_request_line! functions.\n\n\n\n"
 },
 
 {
@@ -381,7 +381,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "Parser",
     "category": "section",
-    "text": "Source: Parsers.jlHTTP.Parsers.Parser"
+    "text": "Source: Parsers.jlHTTP.Parsers"
 },
 
 {
@@ -389,7 +389,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "HTTP.Messages",
     "category": "Module",
-    "text": "The Messages module defines structs that represent HTTP.Request and HTTP.Response Messages.\n\nThe Response struct has a request field that points to the corresponding Request; and the Request struct has a response field. The Request struct also has a parent field that points to a Response in the case of HTTP Redirect.\n\nThe Messages module defines IO read and write methods for Messages but it does not deal with URIs, creating connections, or executing requests.\n\nThe read methods throw EOFError exceptions if input data is incomplete. and call parser functions that may throw HTTP.ParsingError exceptions. The read and write methods may also result in low level IO exceptions.\n\nSending Messages\n\nMessages are formatted and written to an IO stream by Base.write(::IO,::HTTP.Messages.Message) and or HTTP.Messages.writeheaders.\n\nReceiving Messages\n\nMessages are parsed from IO stream data by HTTP.Messages.readheaders. This function calls HTTP.Messages.appendheader and HTTP.Messages.readstartline!.\n\nThe read methods rely on HTTP.IOExtras.unread! to push excess data back to the input stream.\n\nHeaders\n\nHeaders are represented by Vector{Pair{String,String}}. As compared to Dict{String,String} this allows repeated header fields and preservation of order.\n\nHeader values can be accessed by name using HTTP.Messages.header and HTTP.Messages.setheader (case-insensitive).\n\nThe HTTP.Messages.appendheader function handles combining multi-line values, repeated header fields and special handling of multiple Set-Cookie headers.\n\nBodies\n\nThe HTTP.Message structs represent the Message Body as Vector{UInt8}.\n\nStreaming of request and response bodies is handled by the HTTP.StreamLayer and the HTTP.Stream <: IO stream.\n\n\n\n"
+    "text": "The Messages module defines structs that represent HTTP.Request and HTTP.Response Messages.\n\nThe Response struct has a request field that points to the corresponding Request; and the Request struct has a response field. The Request struct also has a parent field that points to a Response in the case of HTTP Redirect.\n\nThe Messages module defines IO read and write methods for Messages but it does not deal with URIs, creating connections, or executing requests.\n\nThe read methods throw EOFError exceptions if input data is incomplete. and call parser functions that may throw HTTP.ParsingError exceptions. The read and write methods may also result in low level IO exceptions.\n\nSending Messages\n\nMessages are formatted and written to an IO stream by Base.write(::IO,::HTTP.Messages.Message) and or HTTP.Messages.writeheaders.\n\nReceiving Messages\n\nMessages are parsed from IO stream data by HTTP.Messages.readheaders. This function calls HTTP.Parsers.parse_header_field and passes each header-field to HTTP.Messages.appendheader.\n\nreadheaders relies on HTTP.IOExtras.unread! to push excess data back to the input stream.\n\nHeaders\n\nHeaders are represented by Vector{Pair{String,String}}. As compared to Dict{String,String} this allows repeated header fields and preservation of order.\n\nHeader values can be accessed by name using HTTP.Messages.header and HTTP.Messages.setheader (case-insensitive).\n\nThe HTTP.Messages.appendheader function handles combining multi-line values, repeated header fields and special handling of multiple Set-Cookie headers.\n\nBodies\n\nThe HTTP.Message structs represent the Message Body as Vector{UInt8}.\n\nStreaming of request and response bodies is handled by the HTTP.StreamLayer and the HTTP.Stream <: IO stream.\n\n\n\n"
 },
 
 {
@@ -405,7 +405,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "HTTP.Streams.Stream",
     "category": "Type",
-    "text": "Stream(::IO, ::Request, ::Parser)\n\nCreates a HTTP.Stream that wraps an existing IO stream.\n\nstartwrite(::Stream) sends the Request headers to the IO stream.\nwrite(::Stream, body) sends the body (or a chunk of the body).\nclosewrite(::Stream) sends the final 0 chunk (if needed) and calls closewrite on the IO stream. When the IO stream is a HTTP.ConnectionPool.Transaction, calling closewrite releases the HTTP.ConnectionPool.Connection back into the pool for use by the next pipelined request.\nstartread(::Stream) calls startread on the IO stream then  reads and parses the Response headers.  When the IO stream is a HTTP.ConnectionPool.Transaction, calling startread waits for other pipelined responses to be read from the HTTP.ConnectionPool.Connection.\neof(::Stream) and readavailable(::Stream) parse the body from the IO  stream.\ncloseread(::Stream) reads the trailers and calls closeread on the IO  stream.  When the IO stream is a HTTP.ConnectionPool.Transaction,  calling closeread releases the readlock and allows the next pipelined  response to be read by another Stream that is waiting in startread.  If the Parser has not recieved a complete response, closeread throws  an EOFError.\n\n\n\n"
+    "text": "Stream(::IO, ::Request)\n\nCreates a HTTP.Stream that wraps an existing IO stream.\n\nstartwrite(::Stream) sends the Request headers to the IO stream.\nwrite(::Stream, body) sends the body (or a chunk of the body).\nclosewrite(::Stream) sends the final 0 chunk (if needed) and calls closewrite on the IO stream. When the IO stream is a HTTP.ConnectionPool.Transaction, calling closewrite releases the HTTP.ConnectionPool.Connection back into the pool for use by the next pipelined request.\nstartread(::Stream) calls startread on the IO stream then  reads and parses the Response headers.  When the IO stream is a HTTP.ConnectionPool.Transaction, calling startread waits for other pipelined responses to be read from the HTTP.ConnectionPool.Connection.\neof(::Stream) and readavailable(::Stream) parse the body from the IO  stream.\ncloseread(::Stream) reads the trailers and calls closeread on the IO  stream.  When the IO stream is a HTTP.ConnectionPool.Transaction,  calling closeread releases the readlock and allows the next pipelined  response to be read by another Stream that is waiting in startread.  If a complete response has not been recieved, closeread throws EOFError.\n\n\n\n"
 },
 
 {
@@ -441,75 +441,59 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#HTTP.Parsers.Message",
+    "location": "index.html#HTTP.Parsers.find_end_of_header",
     "page": "Home",
-    "title": "HTTP.Parsers.Message",
-    "category": "Type",
-    "text": "method::String: the HTTP method RFC7230 3.1.1\nmajor and minor: HTTP version RFC7230 2.6\ntarget::String: request target RFC7230 5.3\nstatus::Int: response status RFC7230 3.1.2\n\n\n\n"
+    "title": "HTTP.Parsers.find_end_of_header",
+    "category": "Function",
+    "text": "find_end_of_header(bytes) -> length or 0\n\nFind length of header delimited by \\r\\n\\r\\n or \\n\\n.\n\n\n\n"
 },
 
 {
-    "location": "index.html#HTTP.Parsers.parseheaders",
+    "location": "index.html#HTTP.Parsers.find_end_of_line",
     "page": "Home",
-    "title": "HTTP.Parsers.parseheaders",
+    "title": "HTTP.Parsers.find_end_of_line",
     "category": "Function",
-    "text": "parseheaders(::Parser, bytes) do h::Pair{String,String} ... -> excess\n\nRead headers from bytes, passing each field/value pair to f. Returns a SubArray containing bytes not parsed.\n\ne.g.\n\nexcess = parseheaders(p, bytes) do (k,v)\n    println(\"$k: $v\")\nend\n\n\n\n"
+    "text": "Find \\n in bytes\n\n\n\n"
 },
 
 {
-    "location": "index.html#HTTP.Parsers.parsebody",
+    "location": "index.html#HTTP.Parsers.find_end_of_trailer",
     "page": "Home",
-    "title": "HTTP.Parsers.parsebody",
+    "title": "HTTP.Parsers.find_end_of_trailer",
     "category": "Function",
-    "text": "parsebody(::Parser, bytes) -> data, excess\n\nParse body data from bytes. Returns decoded data and excess bytes not parsed.\n\n\n\n"
+    "text": "find_end_of_trailer(bytes) -> length or 0\n\nFind length of trailer delimited by \\r\\n\\r\\n (or starting with \\r\\n). RFC7230 4.1\n\n\n\n"
 },
 
 {
-    "location": "index.html#HTTP.Parsers.reset!",
+    "location": "index.html#HTTP.Parsers.parse_status_line!",
     "page": "Home",
-    "title": "HTTP.Parsers.reset!",
+    "title": "HTTP.Parsers.parse_status_line!",
     "category": "Function",
-    "text": "reset!(::Parser)\n\nRevert Parser to unconfigured state.\n\n\n\n"
+    "text": "Parse HTTP response-line bytes and set the status and version fields of response. Return a SubString containing the header-field lines.\n\n\n\n"
 },
 
 {
-    "location": "index.html#HTTP.Parsers.messagestarted",
+    "location": "index.html#HTTP.Parsers.parse_request_line!",
     "page": "Home",
-    "title": "HTTP.Parsers.messagestarted",
+    "title": "HTTP.Parsers.parse_request_line!",
     "category": "Function",
-    "text": "messagestarted(::Parser)\n\nHas the Parser begun processng a Message?\n\n\n\n"
+    "text": "Parse HTTP request-line bytes and set the method, target and version fields of request. Return a SubString containing the header-field lines.\n\n\n\n"
 },
 
 {
-    "location": "index.html#HTTP.Parsers.headerscomplete",
+    "location": "index.html#HTTP.Parsers.parse_header_field",
     "page": "Home",
-    "title": "HTTP.Parsers.headerscomplete",
+    "title": "HTTP.Parsers.parse_header_field",
     "category": "Function",
-    "text": "headerscomplete(::Parser)\n\nHas the Parser processed the entire Message Header?\n\n\n\nheaderscomplete(::Message)\n\nHave the headers been read into this Message?\n\n\n\n"
+    "text": "Parse HTTP header-field. Return Pair(field-name => field-value) and a SubString containing the remaining header-field lines.\n\n\n\n"
 },
 
 {
-    "location": "index.html#HTTP.Parsers.bodycomplete",
+    "location": "index.html#HTTP.Parsers.parse_chunk_size",
     "page": "Home",
-    "title": "HTTP.Parsers.bodycomplete",
+    "title": "HTTP.Parsers.parse_chunk_size",
     "category": "Function",
-    "text": "bodycomplete(::Parser)\n\nHas the Parser processed the Message Body?\n\n\n\n"
-},
-
-{
-    "location": "index.html#HTTP.Parsers.messagecomplete",
-    "page": "Home",
-    "title": "HTTP.Parsers.messagecomplete",
-    "category": "Function",
-    "text": "messagecomplete(::Parser)\n\nHas the Parser processed the entire Message?\n\n\n\n"
-},
-
-{
-    "location": "index.html#HTTP.Parsers.messagehastrailing",
-    "page": "Home",
-    "title": "HTTP.Parsers.messagehastrailing",
-    "category": "Function",
-    "text": "messagehastrailing(::Parser)\n\nIs the Parser ready to process trailing headers?\n\n\n\n"
+    "text": "Parse HTTP chunk-size. Return number of bytes of chunk-data.\n\nchunk-size = 1*HEXDIG\n\nRFC7230 4.1\n\n\n\n"
 },
 
 {
@@ -517,7 +501,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "Parser Interface",
     "category": "section",
-    "text": "HTTP.Parsers.Message\nHTTP.Parsers.parseheaders\nHTTP.Parsers.parsebody\nHTTP.Parsers.reset!\nHTTP.Parsers.messagestarted\nHTTP.Parsers.headerscomplete\nHTTP.Parsers.bodycomplete\nHTTP.Parsers.messagecomplete\nHTTP.Parsers.messagehastrailing"
+    "text": "HTTP.Parsers.find_end_of_header\nHTTP.Parsers.find_end_of_line\nHTTP.Parsers.find_end_of_trailer\nHTTP.Parsers.parse_status_line!\nHTTP.Parsers.parse_request_line!\nHTTP.Parsers.parse_header_field\nHTTP.Parsers.parse_chunk_size"
 },
 
 {
@@ -621,31 +605,23 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "HTTP.Messages.readheaders",
     "category": "Function",
-    "text": "readheaders(::IO, ::Parser, ::Message)\n\nRead headers (and startline) from an IO stream into a Message struct. Throw EOFError if input is incomplete.\n\n\n\n"
+    "text": "readheaders(::IO, ::Message)\n\nRead headers (and startline) from an IO stream into a Message struct. Throw EOFError if input is incomplete.\n\n\n\n"
 },
 
 {
-    "location": "index.html#HTTP.Messages.readstartline!",
+    "location": "index.html#HTTP.Messages.readchunksize",
     "page": "Home",
-    "title": "HTTP.Messages.readstartline!",
+    "title": "HTTP.Messages.readchunksize",
     "category": "Function",
-    "text": "readstartline!(::Parsers.Message, ::Message)\n\nRead the start-line metadata from Parser into a ::Message struct.\n\n\n\n"
+    "text": "Read chunk-size from an IO stream. After the final zero size chunk, read trailers into a Message struct.\n\n\n\n"
 },
 
 {
-    "location": "index.html#HTTP.Parsers.headerscomplete-Tuple{HTTP.Messages.Response}",
+    "location": "index.html#HTTP.Messages.headerscomplete-Tuple{HTTP.Messages.Response}",
     "page": "Home",
-    "title": "HTTP.Parsers.headerscomplete",
+    "title": "HTTP.Messages.headerscomplete",
     "category": "Method",
     "text": "headerscomplete(::Message)\n\nHave the headers been read into this Message?\n\n\n\n"
-},
-
-{
-    "location": "index.html#HTTP.Messages.readtrailers",
-    "page": "Home",
-    "title": "HTTP.Messages.readtrailers",
-    "category": "Function",
-    "text": "readtrailers(::IO, ::Parser, ::Message)\n\nRead trailers from an IO stream into a Message struct.\n\n\n\n"
 },
 
 {
@@ -677,7 +653,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "Messages Interface",
     "category": "section",
-    "text": "HTTP.Messages.Request\nHTTP.Messages.Response\nHTTP.Messages.iserror\nHTTP.Messages.isredirect\nHTTP.Messages.ischunked\nHTTP.Messages.issafe\nHTTP.Messages.isidempotent\nHTTP.Messages.header\nHTTP.Messages.hasheader\nHTTP.Messages.setheader\nHTTP.Messages.defaultheader\nHTTP.Messages.appendheader\nHTTP.Messages.readheaders\nHTTP.Messages.readstartline!\nHTTP.Messages.headerscomplete(::HTTP.Messages.Response)\nHTTP.Messages.readtrailers\nHTTP.Messages.writestartline\nHTTP.Messages.writeheaders\nBase.write(::IO,::HTTP.Messages.Message)"
+    "text": "HTTP.Messages.Request\nHTTP.Messages.Response\nHTTP.Messages.iserror\nHTTP.Messages.isredirect\nHTTP.Messages.ischunked\nHTTP.Messages.issafe\nHTTP.Messages.isidempotent\nHTTP.Messages.header\nHTTP.Messages.hasheader\nHTTP.Messages.setheader\nHTTP.Messages.defaultheader\nHTTP.Messages.appendheader\nHTTP.Messages.readheaders\nHTTP.Messages.readchunksize\nHTTP.Messages.headerscomplete(::HTTP.Messages.Response)\nHTTP.Messages.writestartline\nHTTP.Messages.writeheaders\nBase.write(::IO,::HTTP.Messages.Message)"
 },
 
 {
@@ -693,7 +669,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "HTTP.IOExtras.unread!",
     "category": "Function",
-    "text": "unread!(::Transaction, bytes)\n\nPush bytes back into a connection's excess buffer (to be returned by the next read).\n\n\n\nunread!(::IO, bytes)\n\nPush bytes back into a connection (to be returned by the next read).\n\n\n\n"
+    "text": "unread!(::IO, bytes)\n\nPush bytes back into a connection (to be returned by the next read).\n\n\n\nunread!(::Transaction, bytes)\n\nPush bytes back into a connection's excess buffer (to be returned by the next read).\n\n\n\n"
 },
 
 {
@@ -749,7 +725,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "HTTP.ConnectionPool.Connection",
     "category": "Type",
-    "text": "Connection{T <: IO}\n\nA TCPSocket or SSLContext connection to a HTTP host and port.\n\nFields:\n\nhost::String\nport::String, exactly as specified in the URI (i.e. may be empty).\npipeline_limit, number of requests to send before waiting for responses.\npeerport, remote TCP port number (used for debug messages).\nlocalport, local TCP port number (used for debug messages).\nio::T, the TCPSocket or `SSLContext.\nexcess::ByteView, left over bytes read from the connection after  the end of a response message. These bytes are probably the start of the  next response message.\nsequence, number of most recent Transaction.\nwritecount, number of Messages that have been written.\nwritedone, signal that writecount was incremented.\nreadcount, number of Messages that have been read.\nreaddone, signal that readcount was incremented.\ntimestamp, time data was last recieved.\nparser::Parser, reuse a Parser when this Connection is reused.\n\n\n\n"
+    "text": "Connection{T <: IO}\n\nA TCPSocket or SSLContext connection to a HTTP host and port.\n\nFields:\n\nhost::String\nport::String, exactly as specified in the URI (i.e. may be empty).\npipeline_limit, number of requests to send before waiting for responses.\npeerport, remote TCP port number (used for debug messages).\nlocalport, local TCP port number (used for debug messages).\nio::T, the TCPSocket or `SSLContext.\nexcess::ByteView, left over bytes read from the connection after  the end of a response message. These bytes are probably the start of the  next response message.\nsequence, number of most recent Transaction.\nwritecount, number of Messages that have been written.\nwritedone, signal that writecount was incremented.\nreadcount, number of Messages that have been read.\nreaddone, signal that readcount was incremented.\ntimestamp, time data was last recieved.\n\n\n\n"
 },
 
 {
