@@ -291,6 +291,7 @@ function listen(f::Function,
     tcpserver = Base.listen(getaddrinfo(host), port)
 
     tcpref[] = tcpserver
+    conn = 1
 
     try
         while isopen(tcpserver)
@@ -309,17 +310,18 @@ function listen(f::Function,
                 continue
             end
             io = ssl ? getsslcontext(io, sslconfig) : io
-            let io = Connection(host, string(port), pipeline_limit, io)
-                @info "Accept:  $io"
+            let conn=conn, io = Connection(host, string(port), pipeline_limit, io)
+                @info "Accept conn=$conn:  $io"
                 @async try
-                    handle_connection(f, io; kw...)
+                    handle_connection(f, io; conn=conn, kw...)
                 catch e
-                    @error "Error:   $io" e catch_stacktrace()
+                    @error "Error conn=$conn:   $io" e catch_stacktrace()
                 finally
                     close(io)
-                    @info "Closed:  $io"
+                    @info "Closed conn=$conn:  $io"
                 end
             end
+            conn += 1
         end
     catch e
         if typeof(e) <: InterruptException
@@ -341,14 +343,15 @@ Create a `Transaction` object for each HTTP Request received.
 """
 function handle_connection(f::Function, c::Connection;
                            reuse_limit::Int=nolimit,
-                           readtimeout::Int=0, kw...)
+                           readtimeout::Int=0,
+                           conn::Int=1, kw...)
 
     wait_for_timeout = Ref{Bool}(true)
     if readtimeout > 0
         @async while wait_for_timeout[]
             @show inactiveseconds(c)
             if inactiveseconds(c) > readtimeout
-                @warn "Timeout: $c"
+                @warn "Timeout conn=$conn: $c"
                 writeheaders(c.io, Response(408, ["Connection" => "close"]))
                 close(c)
                 break
@@ -361,8 +364,9 @@ function handle_connection(f::Function, c::Connection;
         count = 0
         while isopen(c)
             io = Transaction(c)
+            @info "Transaction conn=$conn, tran=$(io.sequence): $io"
             handle_transaction(f, io; final_transaction=(count == reuse_limit),
-                                      kw...)
+                                      conn=conn, kw...)
             if count == reuse_limit
                 close(c)
             end
@@ -382,7 +386,8 @@ Otherwise, execute stream processing function `f`.
 """
 function handle_transaction(f::Function, t::Transaction;
                             final_transaction::Bool=false,
-                            verbose::Bool=false, kw...)
+                            verbose::Bool=false,
+                            conn::Int=1, kw...)
 
     request = HTTP.Request()
     http = Streams.Stream(request, t)
@@ -390,6 +395,7 @@ function handle_transaction(f::Function, t::Transaction;
     try
         startread(http)
     catch e
+        @show dump(e)
         # @show typeof(e)
         # @show fieldnames(e)
         if e isa EOFError && isempty(request.method)
@@ -420,6 +426,7 @@ function handle_transaction(f::Function, t::Transaction;
     end
 
     @async try
+        @info "Stream conn=$conn, tran=$(t.sequence): $http"
         handle_stream(f, http)
     catch e
         if isioerror(e)
